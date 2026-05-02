@@ -24,6 +24,7 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [formData, setFormData] = useState({
+    schoolCode: '',
     surname: '',
     firstName: '',
     otherName: '',
@@ -42,11 +43,29 @@ export default function Register() {
     setFormData(prev => ({ ...prev, [id]: value }));
   };
 
-  const handleNext = () => {
-    if (formData.surname && formData.firstName && formData.gender && formData.dob && formData.stateOrigin) {
-      setStep(2);
+  const handleNext = async () => {
+    if (formData.schoolCode && formData.surname && formData.firstName && formData.gender && formData.dob && formData.stateOrigin) {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('schools')
+          .select('school_name')
+          .eq('school_code', formData.schoolCode)
+          .single();
+
+        if (error || !data) {
+          alert("Invalid School Code. Please check with your school administrator.");
+          return;
+        }
+        
+        setStep(2);
+      } catch (err: any) {
+        alert("Error validating school code: " + err.message);
+      } finally {
+        setLoading(false);
+      }
     } else {
-      alert("Please fill in all required personal details.");
+      alert("Please fill in all required personal details including School Code.");
     }
   };
 
@@ -55,13 +74,14 @@ export default function Register() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (step === 1) {
-      handleNext();
+      await handleNext();
       return;
     }
     
     setLoading(true);
 
     const studentData = {
+      school_code: formData.schoolCode,
       surname: formData.surname,
       first_name: formData.firstName,
       other_name: formData.otherName,
@@ -191,6 +211,19 @@ export default function Register() {
                   exit={{ opacity: 0, x: 20 }}
                   className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5"
                 >
+                  <div className="col-span-1 sm:col-span-2">
+                    <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2.5 px-1">School Code (6-digits) *</label>
+                    <input
+                      id="schoolCode"
+                      type="text"
+                      required
+                      maxLength={6}
+                      value={formData.schoolCode}
+                      onChange={handleChange}
+                      placeholder="Enter your 6-digit school code"
+                      className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-2xl text-zinc-800 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all font-medium"
+                    />
+                  </div>
                   <div className="col-span-1">
                     <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2.5 px-1">Surname *</label>
                     <input
