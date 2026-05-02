@@ -1,0 +1,6 @@
+{
+  "name": "Student Portal Registration",
+  "description": "A multi-step student registration form with personal details and school information, integrated with Supabase for data storage.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
