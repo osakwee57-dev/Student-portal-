@@ -35,6 +35,10 @@ const CLASSES = ["JSS1", "JSS2", "JSS3", "SSS1", "SSS2", "SSS3"];
 
 export default function Dashboard() {
   const [student, setStudent] = useState<any>(null);
+  const [fees, setFees] = useState<any[]>([]);
+  const [results, setResults] = useState<any[]>([]);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>('info');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [updating, setUpdating] = useState<string | null>(null);
@@ -63,10 +67,43 @@ export default function Dashboard() {
         studentClass: data.student_class,
         homeAddress: data.home_address
       });
+      loadData(data);
     } else {
       navigate('/login');
     }
   }, [navigate]);
+
+  const loadData = async (studentData: any) => {
+    setLoading(true);
+    try {
+      // 1. Fetch Fees
+      const { data: feesData } = await supabase
+        .from('fees')
+        .select('*')
+        .eq('student_id', studentData.id);
+      setFees(feesData || []);
+
+      // 2. Fetch Results
+      const { data: resultsData } = await supabase
+        .from('results')
+        .select('*')
+        .eq('student_id', studentData.id);
+      setResults(resultsData || []);
+
+      // 3. Fetch Messages (Combined General + Specific)
+      const { data: messagesData } = await supabase
+        .from('messages')
+        .select('*')
+        .or(`type.eq.general,student_id.eq.${studentData.id}`)
+        .eq('school_code', studentData.school_code)
+        .order('created_at', { ascending: false });
+      setMessages(messagesData || []);
+    } catch (error) {
+      console.error("Error loading data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('currentStudent');
@@ -345,6 +382,86 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </div>
+
+                {/* Notice Board */}
+                <div className="bg-white p-8 rounded-[40px] card-shadow border border-zinc-100">
+                  <h4 className="text-xs font-black text-zinc-400 uppercase tracking-widest border-b border-zinc-100 pb-4 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-emerald-500" />
+                    Notice Board
+                  </h4>
+                  <div className="mt-6 space-y-4">
+                    {messages.length > 0 ? messages.map((msg: any) => (
+                      <div key={msg.id} className="p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded ${msg.type === 'general' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>
+                            {msg.type}
+                          </span>
+                          <span className="text-[10px] text-zinc-400 font-bold">{new Date(msg.created_at).toLocaleDateString()}</span>
+                        </div>
+                        <p className="text-sm font-bold text-zinc-800">{msg.content}</p>
+                      </div>
+                    )) : (
+                      <p className="text-sm text-zinc-400 font-medium italic">No new notices from the admin.</p>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            ) : activeTab === 'results' ? (
+              <motion.div
+                key="results"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="space-y-8"
+              >
+                <div className="bg-white p-10 rounded-[40px] card-shadow border border-zinc-100">
+                  <div className="flex items-center justify-between mb-10">
+                    <div>
+                      <h3 className="text-3xl font-black text-zinc-900">Academic Records</h3>
+                      <p className="text-zinc-500 font-medium">Official performance reports for 2024 Session</p>
+                    </div>
+                    <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center">
+                      <GraduationCap className="w-8 h-8" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    {results.length > 0 ? results.map((res: any) => (
+                      <div key={res.id} className="p-6 bg-zinc-50 rounded-3xl border border-zinc-100 flex items-center justify-between hover:border-emerald-200 transition-colors group">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-zinc-400 group-hover:text-emerald-500 transition-colors">
+                            <FileText className="w-6 h-6" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-black text-zinc-800">{res.term} Result - {res.session}</p>
+                            <div className="flex items-center gap-3 mt-1">
+                               <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">{res.academic_class}</span>
+                               <span className="w-1 h-1 bg-zinc-300 rounded-full" />
+                               <span className="text-[10px] text-emerald-600 font-bold uppercase tracking-widest">Score: {res.final_score || 'N/A'}{res.final_score ? '%' : ''}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <button 
+                            onClick={res.pdf_url ? () => setSelectedPdf({ url: res.pdf_url, title: `${res.term} Result` }) : () => alert("Digital copy pending...")}
+                            className="bg-white hover:bg-emerald-500 hover:text-white text-zinc-600 font-bold py-3 px-6 rounded-xl transition-all border border-zinc-200 hover:border-emerald-500 flex items-center gap-2 text-xs shadow-sm"
+                          >
+                            <Eye className="w-4 h-4" />
+                            View Result
+                          </button>
+                        </div>
+                      </div>
+                    )) : (
+                      <div className="text-center py-20 px-10 bg-zinc-50 rounded-3xl border border-dashed border-zinc-200">
+                        <div className="w-16 h-16 bg-zinc-100 text-zinc-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <FileText className="w-8 h-8" />
+                        </div>
+                        <p className="text-zinc-500 font-bold">No academic results published yet.</p>
+                        <p className="text-xs text-zinc-400 mt-1">Please check back after the term examinations.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </motion.div>
             ) : activeTab === 'password' ? (
               <motion.div
@@ -449,29 +566,53 @@ export default function Dashboard() {
                       </div>
                       
                       <div className="space-y-4">
-                        {[
-                          { title: '2024 Session Fee Structure', type: 'PDF Schedule', url: 'https://pdfobject.com/pdf/sample.pdf' },
-                          { title: 'Gateway Academy Policy Document', type: 'Institution Policy', url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf' }
-                        ].map((doc, i) => (
-                          <div key={i} className="flex items-center justify-between p-6 bg-zinc-50 rounded-3xl border border-zinc-100 hover:border-emerald-200 transition-colors group">
+                        {/* Static Policy Documents */}
+                        <div className="flex items-center justify-between p-6 bg-zinc-50 rounded-3xl border border-zinc-100 hover:border-emerald-200 transition-colors group">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-zinc-400 group-hover:text-emerald-500 transition-colors">
+                              <FileText className="w-6 h-6" />
+                            </div>
+                            <div>
+                              <p className="font-bold text-zinc-800">Gateway Academy Policy Document</p>
+                              <p className="text-[10px] text-zinc-400 uppercase tracking-widest mt-1">Institution Policy</p>
+                            </div>
+                          </div>
+                          <button 
+                            onClick={() => setSelectedPdf({ url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', title: 'Gateway Academy Policy Document' })}
+                            className="bg-white hover:bg-emerald-500 hover:text-white text-zinc-600 font-bold py-3 px-6 rounded-xl transition-all border border-zinc-200 hover:border-emerald-500 flex items-center gap-2 text-xs shadow-sm"
+                          >
+                            <Eye className="w-4 h-4" />
+                            View
+                          </button>
+                        </div>
+
+                        {/* Dynamic Fees */}
+                        {fees.map((fee, i) => (
+                          <div key={fee.id || i} className="flex items-center justify-between p-6 bg-emerald-50/30 rounded-3xl border border-emerald-100 hover:border-emerald-300 transition-colors group">
                             <div className="flex items-center gap-4">
-                              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-zinc-400 group-hover:text-emerald-500 transition-colors">
-                                <FileText className="w-6 h-6" />
+                              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-emerald-500">
+                                <CreditCard className="w-6 h-6" />
                               </div>
                               <div>
-                                <p className="font-bold text-zinc-800">{doc.title}</p>
-                                <p className="text-[10px] text-zinc-400 uppercase tracking-widest mt-1">{doc.type}</p>
+                                <p className="font-bold text-zinc-800">{fee.description || 'Fee Document'}</p>
+                                <p className="text-[10px] text-emerald-600 uppercase tracking-widest mt-1">Amount: ₦{fee.amount?.toLocaleString() || '0.00'}</p>
                               </div>
                             </div>
-                            <button 
-                              onClick={() => setSelectedPdf({ url: doc.url, title: doc.title })}
-                              className="bg-white hover:bg-emerald-500 hover:text-white text-zinc-600 font-bold py-3 px-6 rounded-xl transition-all border border-zinc-200 hover:border-emerald-500 flex items-center gap-2 text-xs shadow-sm"
-                            >
-                              <Eye className="w-4 h-4" />
-                              View Document
-                            </button>
+                            {fee.pdf_url && (
+                              <button 
+                                onClick={() => setSelectedPdf({ url: fee.pdf_url, title: fee.description })}
+                                className="bg-white hover:bg-emerald-500 hover:text-white text-emerald-600 font-bold py-3 px-6 rounded-xl transition-all border border-emerald-200 hover:border-emerald-500 flex items-center gap-2 text-xs shadow-sm"
+                              >
+                                <Eye className="w-4 h-4" />
+                                View PDF
+                              </button>
+                            )}
                           </div>
                         ))}
+                        
+                        {fees.length === 0 && (
+                          <p className="text-center text-[10px] text-zinc-400 uppercase tracking-widest py-4">No specific fee records found for your account.</p>
+                        )}
                       </div>
                     </div>
 
