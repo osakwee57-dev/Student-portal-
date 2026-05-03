@@ -152,9 +152,15 @@ export default function Register() {
               <div className="w-6 h-6 border-4 border-white rounded-full" />
             </div>
             
-            <div className="space-y-4">
-              <h1 className="text-4xl font-black leading-tight tracking-tight">Student<br/>Portal 2024</h1>
-              <p className="text-emerald-100/70 text-lg">Join the elite community of Gateway Academy.</p>
+            <div className="space-y-6">
+              <h1 className="text-5xl md:text-7xl font-black leading-[0.8] tracking-tighter uppercase">
+                Student<br/>
+                <span className="text-emerald-400">Portal</span>
+                <span className="text-emerald-500">.</span>
+              </h1>
+              <p className="text-emerald-100/60 text-lg font-medium leading-relaxed max-w-[280px]">
+                Join the elite community of Gateway Academy.
+              </p>
             </div>
 
             {/* Step Indicators */}

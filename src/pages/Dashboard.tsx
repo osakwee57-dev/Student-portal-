@@ -19,7 +19,10 @@ import {
   Download,
   Printer,
   ShieldCheck,
-  AlertCircle
+  AlertCircle,
+  Eye,
+  ExternalLink,
+  X
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -91,6 +94,8 @@ export default function Dashboard() {
       setUpdating(null);
     }
   };
+
+  const [selectedPdf, setSelectedPdf] = useState<{ url: string; title: string } | null>(null);
 
   const handlePasswordChange = async (e: any) => {
     e.preventDefault();
@@ -436,6 +441,40 @@ export default function Dashboard() {
                       </div>
                     </div>
 
+                    {/* Document Hub */}
+                    <div className="bg-white p-8 rounded-[40px] card-shadow border border-zinc-100">
+                      <div className="flex items-center justify-between mb-8">
+                        <h4 className="text-lg font-black text-zinc-800">Fee Documentation</h4>
+                        <div className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Digital Vault</div>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        {[
+                          { title: '2024 Session Fee Structure', type: 'PDF Schedule', url: 'https://pdfobject.com/pdf/sample.pdf' },
+                          { title: 'Gateway Academy Policy Document', type: 'Institution Policy', url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf' }
+                        ].map((doc, i) => (
+                          <div key={i} className="flex items-center justify-between p-6 bg-zinc-50 rounded-3xl border border-zinc-100 hover:border-emerald-200 transition-colors group">
+                            <div className="flex items-center gap-4">
+                              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-zinc-400 group-hover:text-emerald-500 transition-colors">
+                                <FileText className="w-6 h-6" />
+                              </div>
+                              <div>
+                                <p className="font-bold text-zinc-800">{doc.title}</p>
+                                <p className="text-[10px] text-zinc-400 uppercase tracking-widest mt-1">{doc.type}</p>
+                              </div>
+                            </div>
+                            <button 
+                              onClick={() => setSelectedPdf({ url: doc.url, title: doc.title })}
+                              className="bg-white hover:bg-emerald-500 hover:text-white text-zinc-600 font-bold py-3 px-6 rounded-xl transition-all border border-zinc-200 hover:border-emerald-500 flex items-center gap-2 text-xs shadow-sm"
+                            >
+                              <Eye className="w-4 h-4" />
+                              View Document
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
                     {/* Receipt Section */}
                     <div className="bg-white p-4 rounded-[40px] card-shadow border border-zinc-100">
                        <div className="p-6 flex items-center justify-between border-b border-zinc-100">
@@ -543,6 +582,76 @@ export default function Dashboard() {
           </AnimatePresence>
         </div>
       </main>
+
+      {/* PDF Viewer Modal */}
+      <AnimatePresence>
+        {selectedPdf && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-zinc-950/90 backdrop-blur-md z-[100] flex items-center justify-center p-4 md:p-10"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="bg-white w-full h-full max-w-6xl rounded-[40px] overflow-hidden flex flex-col shadow-2xl"
+            >
+              <div className="p-6 md:px-10 flex items-center justify-between border-b border-zinc-100">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center">
+                    <FileText className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-zinc-900 truncate max-w-[200px] md:max-w-md">{selectedPdf.title}</h3>
+                    <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Official Portal Viewer</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <a 
+                    href={selectedPdf.url} 
+                    target="_blank" 
+                    rel="noreferrer"
+                    className="hidden md:flex items-center gap-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold py-3 px-6 rounded-xl transition-all text-sm"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Full Screen
+                  </a>
+                  <button 
+                    onClick={() => setSelectedPdf(null)}
+                    className="bg-red-50 hover:bg-red-100 text-red-600 font-bold py-3 px-6 rounded-xl transition-all text-sm flex items-center gap-2"
+                  >
+                    <X className="w-4 h-4" />
+                    Close
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex-1 bg-zinc-900/5 p-4 md:p-8">
+                <iframe 
+                  id="pdfFrame"
+                  src={`${selectedPdf.url}#toolbar=0`}
+                  className="w-full h-full rounded-2xl border border-zinc-200/50 shadow-inner bg-white"
+                  title="PDF Viewer"
+                />
+              </div>
+
+              <div className="p-4 text-center md:hidden">
+                <a 
+                  href={selectedPdf.url} 
+                  target="_blank" 
+                  rel="noreferrer"
+                  className="w-full flex items-center justify-center gap-2 bg-emerald-50 text-emerald-700 font-bold py-3 rounded-xl text-sm"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  Open Full Screen
+                </a>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
