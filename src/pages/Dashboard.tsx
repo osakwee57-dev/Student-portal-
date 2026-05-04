@@ -16,8 +16,6 @@ import {
   Save,
   CheckCircle,
   Menu,
-  Download,
-  Printer,
   ShieldCheck,
   AlertCircle,
   Eye,
@@ -26,8 +24,6 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-// @ts-ignore - html2pdf doesn't have types easily available
-import html2pdf from 'html2pdf.js';
 
 type Tab = 'info' | 'results' | 'fees' | 'password';
 
@@ -55,7 +51,6 @@ export default function Dashboard() {
   });
   const [passwordLoading, setPasswordLoading] = useState(false);
 
-  const receiptRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -133,6 +128,7 @@ export default function Dashboard() {
   };
 
   const [selectedPdf, setSelectedPdf] = useState<{ url: string; title: string } | null>(null);
+  const [selectedReceipt, setSelectedReceipt] = useState<any | null>(null);
 
   const handlePasswordChange = async (e: any) => {
     e.preventDefault();
@@ -169,20 +165,6 @@ export default function Dashboard() {
     } finally {
       setPasswordLoading(false);
     }
-  };
-
-  const downloadReceipt = () => {
-    if (!receiptRef.current) return;
-    
-    const options = {
-      margin: 0.5,
-      filename: `Receipt_GA_${student.id}.pdf`,
-      image: { type: 'jpeg' as const, quality: 0.98 },
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' as const }
-    };
-    
-    html2pdf().set(options).from(receiptRef.current).save();
   };
 
   if (!student) return null;
@@ -538,164 +520,81 @@ export default function Dashboard() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
+                className="space-y-8"
               >
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                  <div className="lg:col-span-2 space-y-8">
-                    {/* Fee Status Card */}
-                    <div className="bg-white p-10 rounded-[40px] card-shadow border border-zinc-100 flex items-center justify-between overflow-hidden relative">
-                      <div className="absolute top-0 right-0 w-60 h-60 bg-emerald-50 rounded-full blur-3xl -mr-20 -mt-20 opacity-50" />
-                      <div className="relative z-10">
-                        <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100 uppercase tracking-widest">Account Status: Cleared</span>
-                        <h3 className="text-3xl font-black text-zinc-900 mt-3">Portal Balance</h3>
-                        <p className="text-5xl font-black text-zinc-900 mt-4">₦0.00</p>
-                        <p className="text-emerald-600 font-bold mt-2 flex items-center gap-2">
+                {/* Fee Status Card */}
+                <div className="bg-white p-10 rounded-[40px] card-shadow border border-zinc-100 flex items-center justify-between overflow-hidden relative">
+                  <div className="absolute top-0 right-0 w-60 h-60 bg-emerald-50 rounded-full blur-3xl -mr-20 -mt-20 opacity-50" />
+                  <div className="relative z-10">
+                    <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100 uppercase tracking-widest">Account Status: {fees.reduce((sum, f) => sum + (f.items?.reduce((s: number, i: any) => s + i.price, 0) || 0), 0) > 0 ? 'Action Required' : 'Cleared'}</span>
+                    <h3 className="text-3xl font-black text-zinc-900 mt-3">Portal Balance</h3>
+                    <p className="text-5xl font-black text-zinc-900 mt-4">
+                      ₦{fees.reduce((sum, f) => sum + (f.items?.reduce((s: number, i: any) => s + i.price, 0) || 0), 0).toLocaleString()}
+                    </p>
+                    <p className={`font-bold mt-2 flex items-center gap-2 ${fees.reduce((sum, f) => sum + (f.items?.reduce((s: number, i: any) => s + i.price, 0) || 0), 0) > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                      {fees.reduce((sum, f) => sum + (f.items?.reduce((s: number, i: any) => s + i.price, 0) || 0), 0) > 0 ? (
+                        <>
+                          <AlertCircle className="w-4 h-4" />
+                          Outstanding payments for 2024 Session
+                        </>
+                      ) : (
+                        <>
                           <CheckCircle className="w-4 h-4" />
                           No outstanding payments for 2024 Session
-                        </p>
-                      </div>
-                      <div className="hidden md:flex w-24 h-24 bg-emerald-100 rounded-[32px] items-center justify-center text-emerald-500 shrink-0">
-                        <CreditCard className="w-10 h-10" />
-                      </div>
-                    </div>
+                        </>
+                      )}
+                    </p>
+                  </div>
+                  <div className="hidden md:flex w-24 h-24 bg-emerald-100 rounded-[32px] items-center justify-center text-emerald-500 shrink-0">
+                    <CreditCard className="w-10 h-10" />
+                  </div>
+                </div>
 
-                    {/* Document Hub */}
-                    <div className="bg-white p-8 rounded-[40px] card-shadow border border-zinc-100">
-                      <div className="flex items-center justify-between mb-8">
-                        <h4 className="text-lg font-black text-zinc-800">Fee Documentation</h4>
-                        <div className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Digital Vault</div>
-                      </div>
-                      
-                      <div className="space-y-4">
-                        {/* Static Policy Documents */}
-                        <div className="flex items-center justify-between p-6 bg-zinc-50 rounded-3xl border border-zinc-100 hover:border-emerald-200 transition-colors group">
+                {/* Document Hub */}
+                <div className="bg-white p-8 rounded-[40px] card-shadow border border-zinc-100">
+                  <div className="flex items-center justify-between mb-8">
+                    <h4 className="text-lg font-black text-zinc-800">Fee Documentation</h4>
+                    <div className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Digital Vault</div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    {/* Dynamic Fees */}
+                    {fees.length > 0 ? fees.map((fee, i) => {
+                      const feeTotal = fee.items ? fee.items.reduce((sum: number, item: any) => sum + item.price, 0) : 0;
+                      return (
+                        <div 
+                          key={fee.id || i} 
+                          onClick={() => fee.pdf_url ? setSelectedPdf({ url: fee.pdf_url, title: fee.description }) : setSelectedReceipt(fee)}
+                          className="flex items-center justify-between p-6 bg-zinc-50 rounded-3xl border border-zinc-100 hover:border-emerald-200 transition-colors group cursor-pointer"
+                        >
                           <div className="flex items-center gap-4">
                             <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-zinc-400 group-hover:text-emerald-500 transition-colors">
-                              <FileText className="w-6 h-6" />
+                              {fee.pdf_url ? <FileText className="w-6 h-6" /> : <CreditCard className="w-6 h-6" />}
                             </div>
                             <div>
-                              <p className="font-bold text-zinc-800">Gateway Academy Policy Document</p>
-                              <p className="text-[10px] text-zinc-400 uppercase tracking-widest mt-1">Institution Policy</p>
+                              <div className="text-[10px] text-emerald-600 font-bold uppercase tracking-widest">
+                                {fee.pdf_url ? 'PDF DOCUMENT' : 'DIGITAL RECEIPT'}
+                              </div>
+                              <p className="font-bold text-zinc-800">{fee.description || 'Fee Record'}</p>
+                              <p className="text-[10px] text-zinc-400 uppercase tracking-widest mt-1">
+                                {feeTotal > 0 ? `₦${feeTotal.toLocaleString()}` : 'Click to View'}
+                              </p>
                             </div>
                           </div>
-                          <button 
-                            onClick={() => setSelectedPdf({ url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', title: 'Gateway Academy Policy Document' })}
-                            className="bg-white hover:bg-emerald-500 hover:text-white text-zinc-600 font-bold py-3 px-6 rounded-xl transition-all border border-zinc-200 hover:border-emerald-500 flex items-center gap-2 text-xs shadow-sm"
-                          >
-                            <Eye className="w-4 h-4" />
-                            View
-                          </button>
+                          <div className="text-zinc-300">
+                            <ChevronRight className="w-5 h-5" />
+                          </div>
                         </div>
-
-                        {/* Dynamic Fees */}
-                        {fees.map((fee, i) => (
-                          <div key={fee.id || i} className="flex items-center justify-between p-6 bg-emerald-50/30 rounded-3xl border border-emerald-100 hover:border-emerald-300 transition-colors group">
-                            <div className="flex items-center gap-4">
-                              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-emerald-500">
-                                <CreditCard className="w-6 h-6" />
-                              </div>
-                              <div>
-                                <p className="font-bold text-zinc-800">{fee.description || 'Fee Document'}</p>
-                                <p className="text-[10px] text-emerald-600 uppercase tracking-widest mt-1">Amount: ₦{fee.amount?.toLocaleString() || '0.00'}</p>
-                              </div>
-                            </div>
-                            {fee.pdf_url && (
-                              <button 
-                                onClick={() => setSelectedPdf({ url: fee.pdf_url, title: fee.description })}
-                                className="bg-white hover:bg-emerald-500 hover:text-white text-emerald-600 font-bold py-3 px-6 rounded-xl transition-all border border-emerald-200 hover:border-emerald-500 flex items-center gap-2 text-xs shadow-sm"
-                              >
-                                <Eye className="w-4 h-4" />
-                                View PDF
-                              </button>
-                            )}
-                          </div>
-                        ))}
-                        
-                        {fees.length === 0 && (
-                          <p className="text-center text-[10px] text-zinc-400 uppercase tracking-widest py-4">No specific fee records found for your account.</p>
-                        )}
+                      );
+                    }) : (
+                      <div className="text-center py-20 px-10 bg-zinc-50 rounded-3xl border border-dashed border-zinc-200">
+                        <div className="w-16 h-16 bg-zinc-100 text-zinc-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <CreditCard className="w-8 h-8" />
+                        </div>
+                        <p className="text-zinc-500 font-bold">No fee records assigned to your portal yet.</p>
+                        <p className="text-xs text-zinc-400 mt-1">Assignments will appear here once processed.</p>
                       </div>
-                    </div>
-
-                    {/* Receipt Section */}
-                    <div className="bg-white p-4 rounded-[40px] card-shadow border border-zinc-100">
-                       <div className="p-6 flex items-center justify-between border-b border-zinc-100">
-                          <h4 className="font-black text-zinc-800">Enrollment Receipt</h4>
-                          <button 
-                            onClick={downloadReceipt}
-                            className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2.5 px-6 rounded-xl transition-all shadow-lg shadow-emerald-500/10 flex items-center gap-2 text-sm"
-                          >
-                            <Download className="w-4 h-4" />
-                            Download PDF
-                          </button>
-                       </div>
-                       
-                       <div className="p-8 flex justify-center">
-                          {/* Receipt Box */}
-                          <div 
-                            ref={receiptRef}
-                            className="receipt-box w-full max-w-[360px] p-8 border-2 border-dashed border-zinc-200 bg-zinc-50/50 rounded-2xl font-mono text-zinc-700"
-                          >
-                             <div className="text-center mb-8 border-b-2 border-zinc-200 pb-6">
-                                <div className="text-xl font-black text-emerald-600 mb-1 leading-none">GATEWAY ACADEMY</div>
-                                <div className="text-[10px] uppercase tracking-widest opacity-50 mt-1">Official Student Receipt</div>
-                             </div>
-
-                             <div className="text-center mb-10">
-                                <div className="text-[10px] uppercase tracking-widest opacity-40 mb-1">Total Paid</div>
-                                <div className="text-4xl font-black text-zinc-900 leading-tight">₦125,500</div>
-                                <div className="text-[10px] text-emerald-600 font-bold uppercase mt-1 tracking-tighter">Verified • Complete</div>
-                             </div>
-
-                             <div className="space-y-4 text-[11px] uppercase tracking-wider">
-                                <div className="flex justify-between border-b border-zinc-200 pb-2">
-                                   <span className="opacity-50">Payer</span>
-                                   <span className="font-bold">{student.first_name} {student.surname}</span>
-                                </div>
-                                <div className="flex justify-between border-b border-zinc-200 pb-2">
-                                   <span className="opacity-50">Portal ID</span>
-                                   <span className="font-bold">GA-{student.id}</span>
-                                </div>
-                                <div className="flex justify-between border-b border-zinc-200 pb-2">
-                                   <span className="opacity-50">Purpose</span>
-                                   <span className="font-bold">2024 Enrollment</span>
-                                </div>
-                                <div className="flex justify-between border-b border-zinc-200 pb-2">
-                                   <span className="opacity-50">Date</span>
-                                   <span className="font-bold">{new Date().toLocaleDateString()}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                   <span className="opacity-50">Ref ID</span>
-                                   <span className="font-bold">TXN-492040</span>
-                                </div>
-                             </div>
-
-                             <div className="mt-10 border-t-2 border-zinc-200 pt-6 text-center">
-                                <div className="flex items-center justify-center gap-2 text-emerald-600 font-bold mb-4">
-                                   <Printer className="w-3 h-3" />
-                                   <span className="text-[10px]">Secure Digital Signature</span>
-                                </div>
-                                <div className="w-full h-8 bg-zinc-200/50 rounded flex items-center justify-center">
-                                   <div className="w-4/5 h-1 bg-zinc-300 rounded-full" />
-                                </div>
-                             </div>
-                          </div>
-                       </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-8">
-                     <div className="bg-amber-50 p-8 rounded-[40px] border border-amber-100">
-                        <div className="flex items-center gap-3 mb-4">
-                           <AlertCircle className="w-5 h-5 text-amber-600" />
-                           <h5 className="font-black text-amber-900 text-sm">Finance Notice</h5>
-                        </div>
-                        <p className="text-sm text-amber-800/80 leading-relaxed font-bold">
-                          Tuition receipts are generated automatically upon successful verification of bank transfer. 
-                        </p>
-                        <button className="mt-6 w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-4 rounded-2xl text-xs shadow-lg shadow-amber-600/10 transition-all">
-                           Report Payment Issue
-                        </button>
-                     </div>
+                    )}
                   </div>
                 </div>
               </motion.div>
@@ -789,6 +688,63 @@ export default function Dashboard() {
                   Open Full Screen
                 </a>
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Digital Receipt Modal */}
+      <AnimatePresence>
+        {selectedReceipt && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-zinc-950/90 backdrop-blur-md z-[100] flex items-center justify-center p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="bg-white w-full max-w-lg rounded-[40px] overflow-hidden flex flex-col shadow-2xl"
+            >
+               <div className="p-6 md:px-10 bg-zinc-50 flex items-center justify-between border-b border-zinc-200">
+                  <h3 className="text-lg font-black text-zinc-900 truncate">Document Viewer</h3>
+                  <button 
+                    onClick={() => setSelectedReceipt(null)}
+                    className="p-2 hover:bg-red-50 text-red-600 rounded-full transition-colors"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+               </div>
+               
+               <div className="p-8 md:p-12 overflow-y-auto">
+                  <div className="max-w-sm mx-auto receipt-box p-8 border-2 border-dashed border-zinc-200 text-zinc-700 font-mono">
+                     <div className="text-center mb-8 pb-6 border-b border-zinc-200">
+                        <div className="text-xl font-black text-emerald-600 uppercase">School Receipt</div>
+                        <p className="text-[10px] uppercase tracking-widest opacity-50 mt-1">Date: {new Date(selectedReceipt.created_at).toLocaleDateString()}</p>
+                     </div>
+
+                     <div className="space-y-4 mb-10">
+                        {selectedReceipt.items?.map((item: any, idx: number) => (
+                           <div key={idx} className="flex justify-between border-b border-dashed border-zinc-200 pb-3">
+                              <span className="text-xs truncate max-w-[200px]">{item.item}</span>
+                              <span className="font-bold text-xs whitespace-nowrap">₦{item.price.toLocaleString()}</span>
+                           </div>
+                        ))}
+                     </div>
+
+                     <div className="pt-6 border-t-2 border-zinc-900 flex justify-between items-center text-lg font-black">
+                        <span>TOTAL</span>
+                        <span>₦{selectedReceipt.items?.reduce((s: number, i: any) => s + i.price, 0).toLocaleString()}</span>
+                     </div>
+
+                     <div className="mt-8 text-center">
+                        <p className="text-[10px] text-zinc-400 uppercase tracking-widest">Transaction Ref</p>
+                        <p className="text-[10px] font-bold text-zinc-600 truncate">{selectedReceipt.id.substring(0, 16).toUpperCase()}</p>
+                     </div>
+                  </div>
+               </div>
             </motion.div>
           </motion.div>
         )}
