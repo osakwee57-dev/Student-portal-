@@ -518,7 +518,7 @@ export default function Dashboard() {
                 const totalBalance = fees
                   .filter(f => f.status === 'pending')
                   .reduce((sum, f) => {
-                    const fromItems = f.items?.reduce((s: number, i: any) => s + i.price, 0) || 0;
+                    const fromItems = f.items?.reduce((s: number, i: any) => s + (Number(i.price) || 0), 0) || 0;
                     const fromAmount = Number(f.amount) || 0;
                     return sum + (fromItems || fromAmount);
                   }, 0);
@@ -571,7 +571,7 @@ export default function Dashboard() {
                       <div className="space-y-4">
                         {/* Dynamic Fees */}
                         {fees.length > 0 ? fees.map((fee, i) => {
-                          const feeTotal = fee.items ? fee.items.reduce((sum: number, item: any) => sum + item.price, 0) : 0;
+                          const feeTotal = fee.items ? fee.items.reduce((sum: number, item: any) => sum + (Number(item.price) || 0), 0) : (Number(fee.amount) || 0);
                           const isPaid = fee.status === 'paid';
                           
                           return (
@@ -744,14 +744,14 @@ export default function Dashboard() {
                         {selectedReceipt.items?.map((item: any, idx: number) => (
                            <div key={idx} className="flex justify-between border-b border-dashed border-zinc-200 pb-3">
                               <span className="text-xs truncate max-w-[200px]">{item.item}</span>
-                              <span className="font-bold text-xs whitespace-nowrap">₦{item.price.toLocaleString()}</span>
+                              <span className="font-bold text-xs whitespace-nowrap">₦{Number(item.price).toLocaleString()}</span>
                            </div>
                         ))}
                      </div>
 
                      <div className="pt-6 border-t-2 border-zinc-900 flex justify-between items-center text-lg font-black">
                         <span>TOTAL</span>
-                        <span>₦{selectedReceipt.items?.reduce((s: number, i: any) => s + i.price, 0).toLocaleString()}</span>
+                        <span>₦{selectedReceipt.items?.reduce((s: number, i: any) => s + (Number(i.price) || 0), 0).toLocaleString()}</span>
                      </div>
 
                      <div className="mt-8 text-center">
