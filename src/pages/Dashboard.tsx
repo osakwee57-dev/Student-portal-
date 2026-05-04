@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, animate } from 'motion/react';
 import { 
   LogOut, 
   User, 
@@ -263,7 +263,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-4">
             <div className="hidden sm:block text-right">
               <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Portal Version</p>
-              <p className="text-xs font-bold text-emerald-600">v2024.1.2 GA</p>
+              <p className="text-xs font-bold text-emerald-600">v1.2.0 GA</p>
             </div>
           </div>
         </header>
@@ -400,7 +400,7 @@ export default function Dashboard() {
                   <div className="flex items-center justify-between mb-10">
                     <div>
                       <h3 className="text-3xl font-black text-zinc-900">Academic Records</h3>
-                      <p className="text-zinc-500 font-medium">Official performance reports for 2024 Session</p>
+                      <p className="text-zinc-500 font-medium">Official performance reports for Current Session</p>
                     </div>
                     <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center">
                       <GraduationCap className="w-8 h-8" />
@@ -528,19 +528,19 @@ export default function Dashboard() {
                   <div className="relative z-10">
                     <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100 uppercase tracking-widest">Account Status: {fees.reduce((sum, f) => sum + (f.items?.reduce((s: number, i: any) => s + i.price, 0) || 0), 0) > 0 ? 'Action Required' : 'Cleared'}</span>
                     <h3 className="text-3xl font-black text-zinc-900 mt-3">Portal Balance</h3>
-                    <p className="text-5xl font-black text-zinc-900 mt-4">
-                      ₦{fees.reduce((sum, f) => sum + (f.items?.reduce((s: number, i: any) => s + i.price, 0) || 0), 0).toLocaleString()}
+                    <p className="text-3xl sm:text-5xl font-black text-zinc-900 mt-4">
+                      ₦<AnimatedCounter value={fees.reduce((sum, f) => sum + (f.items?.reduce((s: number, i: any) => s + i.price, 0) || 0), 0)} />
                     </p>
                     <p className={`font-bold mt-2 flex items-center gap-2 ${fees.reduce((sum, f) => sum + (f.items?.reduce((s: number, i: any) => s + i.price, 0) || 0), 0) > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
                       {fees.reduce((sum, f) => sum + (f.items?.reduce((s: number, i: any) => s + i.price, 0) || 0), 0) > 0 ? (
                         <>
                           <AlertCircle className="w-4 h-4" />
-                          Outstanding payments for 2024 Session
+                          Outstanding payments for Current Session
                         </>
                       ) : (
                         <>
                           <CheckCircle className="w-4 h-4" />
-                          No outstanding payments for 2024 Session
+                          No outstanding payments for Current Session
                         </>
                       )}
                     </p>
@@ -751,6 +751,21 @@ export default function Dashboard() {
       </AnimatePresence>
     </div>
   );
+}
+
+function AnimatedCounter({ value }: { value: number }) {
+  const [displayValue, setDisplayValue] = useState(0);
+
+  useEffect(() => {
+    const controls = animate(0, value, {
+      duration: 2,
+      onUpdate: (latest) => setDisplayValue(latest),
+      ease: [0.16, 1, 0.3, 1] // Custom ease for a smooth feel
+    });
+    return () => controls.stop();
+  }, [value]);
+
+  return <span>{displayValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>;
 }
 
 function NavItem({ active, icon, label, onClick }: { active: boolean, icon: any, label: string, onClick: () => void }) {
