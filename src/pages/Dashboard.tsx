@@ -514,91 +514,106 @@ export default function Dashboard() {
                   </form>
                 </div>
               </motion.div>
-            ) : activeTab === 'fees' ? (
-              <motion.div
-                key="fees"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="space-y-8"
-              >
-                {/* Fee Status Card */}
-                <div className="bg-white p-10 rounded-[40px] card-shadow border border-zinc-100 flex items-center justify-between overflow-hidden relative">
-                  <div className="absolute top-0 right-0 w-60 h-60 bg-emerald-50 rounded-full blur-3xl -mr-20 -mt-20 opacity-50" />
-                  <div className="relative z-10">
-                    <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100 uppercase tracking-widest">Account Status: {fees.reduce((sum, f) => sum + (f.items?.reduce((s: number, i: any) => s + i.price, 0) || 0), 0) > 0 ? 'Action Required' : 'Cleared'}</span>
-                    <h3 className="text-3xl font-black text-zinc-900 mt-3">Portal Balance</h3>
-                    <p className="text-3xl sm:text-5xl font-black text-zinc-900 mt-4">
-                      ₦<AnimatedCounter value={fees.reduce((sum, f) => sum + (f.items?.reduce((s: number, i: any) => s + i.price, 0) || 0), 0)} />
-                    </p>
-                    <p className={`font-bold mt-2 flex items-center gap-2 ${fees.reduce((sum, f) => sum + (f.items?.reduce((s: number, i: any) => s + i.price, 0) || 0), 0) > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
-                      {fees.reduce((sum, f) => sum + (f.items?.reduce((s: number, i: any) => s + i.price, 0) || 0), 0) > 0 ? (
-                        <>
-                          <AlertCircle className="w-4 h-4" />
-                          Outstanding payments for Current Session
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle className="w-4 h-4" />
-                          No outstanding payments for Current Session
-                        </>
-                      )}
-                    </p>
-                  </div>
-                  <div className="hidden md:flex w-24 h-24 bg-emerald-100 rounded-[32px] items-center justify-center text-emerald-500 shrink-0">
-                    <CreditCard className="w-10 h-10" />
-                  </div>
-                </div>
-
-                {/* Document Hub */}
-                <div className="bg-white p-8 rounded-[40px] card-shadow border border-zinc-100">
-                  <div className="flex items-center justify-between mb-8">
-                    <h4 className="text-lg font-black text-zinc-800">Fee Documentation</h4>
-                    <div className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Digital Vault</div>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    {/* Dynamic Fees */}
-                    {fees.length > 0 ? fees.map((fee, i) => {
-                      const feeTotal = fee.items ? fee.items.reduce((sum: number, item: any) => sum + item.price, 0) : 0;
-                      return (
-                        <div 
-                          key={fee.id || i} 
-                          onClick={() => fee.pdf_url ? setSelectedPdf({ url: fee.pdf_url, title: fee.description }) : setSelectedReceipt(fee)}
-                          className="flex items-center justify-between p-6 bg-zinc-50 rounded-3xl border border-zinc-100 hover:border-emerald-200 transition-colors group cursor-pointer"
-                        >
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-zinc-400 group-hover:text-emerald-500 transition-colors">
-                              {fee.pdf_url ? <FileText className="w-6 h-6" /> : <CreditCard className="w-6 h-6" />}
-                            </div>
-                            <div>
-                              <div className="text-[10px] text-emerald-600 font-bold uppercase tracking-widest">
-                                {fee.pdf_url ? 'PDF DOCUMENT' : 'DIGITAL RECEIPT'}
-                              </div>
-                              <p className="font-bold text-zinc-800">{fee.description || 'Fee Record'}</p>
-                              <p className="text-[10px] text-zinc-400 uppercase tracking-widest mt-1">
-                                {feeTotal > 0 ? `₦${feeTotal.toLocaleString()}` : 'Click to View'}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="text-zinc-300">
-                            <ChevronRight className="w-5 h-5" />
-                          </div>
-                        </div>
-                      );
-                    }) : (
-                      <div className="text-center py-20 px-10 bg-zinc-50 rounded-3xl border border-dashed border-zinc-200">
-                        <div className="w-16 h-16 bg-zinc-100 text-zinc-400 rounded-full flex items-center justify-center mx-auto mb-4">
-                          <CreditCard className="w-8 h-8" />
-                        </div>
-                        <p className="text-zinc-500 font-bold">No fee records assigned to your portal yet.</p>
-                        <p className="text-xs text-zinc-400 mt-1">Assignments will appear here once processed.</p>
+            ) : activeTab === 'fees' ? (() => {
+                const totalBalance = fees
+                  .filter(f => f.status === 'pending')
+                  .reduce((sum, f) => {
+                    const fromItems = f.items?.reduce((s: number, i: any) => s + i.price, 0) || 0;
+                    const fromAmount = Number(f.amount) || 0;
+                    return sum + (fromItems || fromAmount);
+                  }, 0);
+                
+                return (
+                  <motion.div
+                    key="fees"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="space-y-8"
+                  >
+                    {/* Fee Status Card */}
+                    <div className="bg-white p-10 rounded-[40px] card-shadow border border-zinc-100 flex items-center justify-between overflow-hidden relative">
+                      <div className="absolute top-0 right-0 w-60 h-60 bg-emerald-50 rounded-full blur-3xl -mr-20 -mt-20 opacity-50" />
+                      <div className="relative z-10">
+                        <span className={`text-[10px] font-black px-3 py-1.5 rounded-lg border uppercase tracking-widest ${totalBalance > 0 ? 'text-amber-600 bg-amber-50 border-amber-100' : 'text-emerald-600 bg-emerald-50 border-emerald-100'}`}>
+                          Account Status: {totalBalance > 0 ? 'Action Required' : 'Cleared'}
+                        </span>
+                        <h3 className="text-3xl font-black text-zinc-900 mt-3">Portal Balance</h3>
+                        <p className="text-3xl sm:text-5xl font-black text-zinc-900 mt-4">
+                          ₦<AnimatedCounter value={totalBalance} />
+                        </p>
+                        <p className={`font-bold mt-2 flex items-center gap-2 ${totalBalance > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                          {totalBalance > 0 ? (
+                            <>
+                              <AlertCircle className="w-4 h-4" />
+                              Outstanding payments for Current Session
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle className="w-4 h-4" />
+                              No outstanding payments for Current Session
+                            </>
+                          )}
+                        </p>
                       </div>
-                    )}
-                  </div>
-                </div>
-              </motion.div>
-            ) : (
+                      <div className="hidden md:flex w-24 h-24 bg-emerald-100 rounded-[32px] items-center justify-center text-emerald-500 shrink-0">
+                        <CreditCard className="w-10 h-10" />
+                      </div>
+                    </div>
+
+                    {/* Document Hub */}
+                    <div className="bg-white p-8 rounded-[40px] card-shadow border border-zinc-100">
+                      <div className="flex items-center justify-between mb-8">
+                        <h4 className="text-lg font-black text-zinc-800">Fee Documentation</h4>
+                        <div className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Digital Vault</div>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        {/* Dynamic Fees */}
+                        {fees.length > 0 ? fees.map((fee, i) => {
+                          const feeTotal = fee.items ? fee.items.reduce((sum: number, item: any) => sum + item.price, 0) : 0;
+                          const isPaid = fee.status === 'paid';
+                          
+                          return (
+                            <div 
+                              key={fee.id || i} 
+                              onClick={() => fee.pdf_url ? setSelectedPdf({ url: fee.pdf_url, title: fee.description }) : setSelectedReceipt(fee)}
+                              className={`flex items-center justify-between p-6 bg-zinc-50 rounded-3xl border border-zinc-100 hover:border-emerald-200 transition-colors group cursor-pointer ${isPaid ? 'opacity-70' : 'opacity-100'}`}
+                            >
+                              <div className="flex items-center gap-4">
+                                <div className={`w-12 h-12 bg-white rounded-2xl flex items-center justify-center transition-colors ${isPaid ? 'text-emerald-500' : 'text-zinc-400 group-hover:text-emerald-500'}`}>
+                                  {isPaid ? <CheckCircle className="w-6 h-6" /> : (fee.pdf_url ? <FileText className="w-6 h-6" /> : <CreditCard className="w-6 h-6" />)}
+                                </div>
+                                <div>
+                                  <div className={`text-[10px] font-bold uppercase tracking-widest ${isPaid ? 'text-emerald-600' : 'text-amber-600'}`}>
+                                    {isPaid ? 'PAID / CLEARED' : 'UNPAID'}
+                                  </div>
+                                  <p className="font-bold text-zinc-800 lowercase first-letter:uppercase">{fee.description || 'Fee Record'}</p>
+                                  <p className="text-[10px] text-zinc-400 uppercase tracking-widest mt-1">
+                                    {feeTotal > 0 ? `₦${feeTotal.toLocaleString()}` : 'Click to View'}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="text-zinc-300">
+                                <ChevronRight className="w-5 h-5" />
+                              </div>
+                            </div>
+                          );
+                        }) : (
+                          <div className="text-center py-20 px-10 bg-zinc-50 rounded-3xl border border-dashed border-zinc-200">
+                            <div className="w-16 h-16 bg-zinc-100 text-zinc-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                              <CreditCard className="w-8 h-8" />
+                            </div>
+                            <p className="text-zinc-500 font-bold">No fee records assigned to your portal yet.</p>
+                            <p className="text-xs text-zinc-400 mt-1">Assignments will appear here once processed.</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })()
+            : (
               <motion.div
                 key="placeholder"
                 initial={{ opacity: 0, scale: 0.98 }}
@@ -765,7 +780,7 @@ function AnimatedCounter({ value }: { value: number }) {
     return () => controls.stop();
   }, [value]);
 
-  return <span>{displayValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>;
+  return <span>{Math.floor(displayValue).toLocaleString()}</span>;
 }
 
 function NavItem({ active, icon, label, onClick }: { active: boolean, icon: any, label: string, onClick: () => void }) {
